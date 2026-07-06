@@ -773,8 +773,12 @@ public class MainActivity extends AppCompatActivity {
         StringBuilder out = new StringBuilder();
         StringBuilder err = new StringBuilder();
         try {
-            // Executes command directly in su shell
-            Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", command});
+            // Use --mount-master to access the global mount namespace.
+            // On Android 15, Magisk isolates mount namespaces by default,
+            // which prevents the su shell from seeing /data/data and /data/user/0.
+            // --mount-master (or -mm) forces the shell into the global namespace
+            // where all filesystems are correctly visible.
+            Process p = Runtime.getRuntime().exec(new String[]{"su", "--mount-master", "-c", command});
             
             BufferedReader osOut = new BufferedReader(new InputStreamReader(p.getInputStream()));
             BufferedReader osErr = new BufferedReader(new InputStreamReader(p.getErrorStream()));
