@@ -5,6 +5,7 @@
     android:background="#0F172A">
 
     <LinearLayout
+        android:id="@+id/layoutDashboard"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
@@ -332,6 +333,155 @@
                 android:textSize="13sp"
                 android:layout_marginStart="12dp"/>
         </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- ═══ PERMISSION GATE SCREEN ═══ -->
+    <LinearLayout
+        android:id="@+id/layoutGate"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="#0F172A"
+        android:gravity="center"
+        android:padding="24dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🛡️"
+            android:textSize="80sp"
+            android:layout_marginBottom="24dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Akses &amp; Izin Dibutuhkan"
+            android:textSize="22sp"
+            android:textColor="#E2E8F0"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Aplikasi ini membutuhkan akses penyimpanan penuh dan hak akses root (Magisk) untuk dapat membackup/merestore data aplikasi Anda."
+            android:textSize="13sp"
+            android:textColor="#94A3B8"
+            android:gravity="center"
+            android:layout_marginBottom="32dp"/>
+
+        <!-- Requirement 1: Storage -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="#1E293B"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:id="@+id/tvGateStorageStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔴"
+                android:textSize="18sp"/>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginStart="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Akses Penyimpanan Penuh"
+                    android:textColor="#E2E8F0"
+                    android:textSize="14sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Dibutuhkan untuk menulis backup di SD Card"
+                    android:textColor="#64748B"
+                    android:textSize="11sp"/>
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnGateGrantStorage"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Izinkan"
+                android:textSize="11sp"
+                android:textColor="#0F172A"
+                android:backgroundTint="#38BDF8"/>
+        </LinearLayout>
+
+        <!-- Requirement 2: Root -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="#1E293B"
+            android:padding="16dp"
+            android:layout_marginBottom="32dp">
+
+            <TextView
+                android:id="@+id/tvGateRootStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔴"
+                android:textSize="18sp"/>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginStart="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hak Akses Root (Superuser)"
+                    android:textColor="#E2E8F0"
+                    android:textSize="14sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Dibutuhkan untuk mengakses data aplikasi (/data/data)"
+                    android:textColor="#64748B"
+                    android:textSize="11sp"/>
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnGateRequestRoot"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Minta Akses"
+                android:textSize="11sp"
+                android:textColor="#0F172A"
+                android:backgroundTint="#818CF8"/>
+        </LinearLayout>
+
+        <!-- Retry/Check Button -->
+        <Button
+            android:id="@+id/btnGateCheckAll"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Periksa &amp; Lanjutkan"
+            android:textSize="15sp"
+            android:textColor="#0F172A"
+            android:backgroundTint="#34D399"
+            android:enabled="false"/>
 
     </LinearLayout>
 

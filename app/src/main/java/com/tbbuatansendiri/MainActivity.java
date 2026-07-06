@@ -38,8 +38,12 @@ public class MainActivity extends AppCompatActivity {
     private CheckBox chkTargetWa, chkTargetWaBiz;
     private Button btnSelectOtherApps, btnAddProfile, btnManualBackup, btnRefresh;
     private TextView tvSelectedOtherApps, tvConsoleLog, tvProgressText, btnClearConsole;
-    private LinearLayout layoutProfileSlots, layoutProgress;
+    private LinearLayout layoutProfileSlots, layoutProgress, layoutDashboard, layoutGate;
     private ScrollView scrollConsole;
+    private TextView tvGateStorageStatus, tvGateRootStatus;
+    private Button btnGateGrantStorage, btnGateRequestRoot, btnGateCheckAll;
+    private boolean isRootGranted = false;
+    private boolean isStorageGranted = false;
 
     private SharedPreferences prefs;
     private ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -76,6 +80,23 @@ public class MainActivity extends AppCompatActivity {
         tvProgressText = findViewById(R.id.tvProgressText);
         scrollConsole = findViewById(R.id.scrollConsole);
 
+        layoutDashboard = findViewById(R.id.layoutDashboard);
+        layoutGate = findViewById(R.id.layoutGate);
+        tvGateStorageStatus = findViewById(R.id.tvGateStorageStatus);
+        tvGateRootStatus = findViewById(R.id.tvGateRootStatus);
+        btnGateGrantStorage = findViewById(R.id.btnGateGrantStorage);
+        btnGateRequestRoot = findViewById(R.id.btnGateRequestRoot);
+        btnGateCheckAll = findViewById(R.id.btnGateCheckAll);
+
+        btnGateGrantStorage.setOnClickListener(v -> grantStoragePermission());
+        btnGateRequestRoot.setOnClickListener(v -> checkRootAccess(true));
+        btnGateCheckAll.setOnClickListener(v -> {
+            if (isRootGranted && isStorageGranted) {
+                layoutGate.setVisibility(View.GONE);
+                layoutDashboard.setVisibility(View.VISIBLE);
+            }
+        });
+
         // Load settings — sanitize to prevent shell injection if prefs are tampered
         activeProfile = sanitizeProfileName(prefs.getString(KEY_ACTIVE_PROFILE, "01"));
         if (activeProfile.isEmpty()) activeProfile = "01";
@@ -94,10 +115,16 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // Initialize state
-        checkRootAndPermissions();
+        runRequirementsCheck();
         updateTargetPackagesList();
         loadProfilesFromDisk();
         updateUI();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        runRequirementsCheck();
     }
 
     private void logConsole(final String text) {
@@ -125,45 +152,85 @@ public class MainActivity extends AppCompatActivity {
 
     // ─── CHECKS & PERMISSIONS ───────────────────────────────────────────────────
 
-    private void checkRootAndPermissions() {
-        logConsole("[System] Checking root status...");
-        executor.execute(() -> {
-            ShellResult r = runRootCommand("id");
-            if (r.exitCode == 0 && r.stdout.contains("uid=0")) {
-                logConsole("[System] Root status: ACTIVE (uid=0)");
-                // Create backup root directory via root shell
-                runRootCommand("mkdir -p " + BACKUP_ROOT);
-            } else {
-                logConsole("[System] Root status: FAILED/DENIED.");
-                logConsole("[Warning] Application needs root permissions to access app data directories!");
-                mainHandler.post(() -> {
-                    Toast.makeText(MainActivity.this, "Akses root (Magisk) dibutuhkan!", Toast.LENGTH_LONG).show();
-                });
-            }
-        });
+    private void runRequirementsCheck() {
+        checkStoragePermissionState();
+        checkRootAccess(false);
+    }
 
-        // Request storage permissions
+    private void checkStoragePermissionState() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (!Environment.isExternalStorageManager()) {
-                logConsole("[System] Requesting All Files Access storage permission...");
-                try {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-                    intent.addCategory("android.intent.category.DEFAULT");
-                    intent.setData(Uri.parse(String.format("package:%s", getPackageName())));
-                    startActivity(intent);
-                } catch (Exception e) {
-                    Intent intent = new Intent();
-                    intent.setAction(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                    startActivity(intent);
-                }
+            isStorageGranted = Environment.isExternalStorageManager();
+        } else {
+            isStorageGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        mainHandler.post(() -> {
+            if (isStorageGranted) {
+                tvGateStorageStatus.setText("🟢 Terpenuhi");
+                btnGateGrantStorage.setEnabled(false);
+            } else {
+                tvGateStorageStatus.setText("🔴 Belum Diizinkan");
+                btnGateGrantStorage.setEnabled(true);
+            }
+            updateGateProceedButton();
+        });
+    }
+
+    private void grantStoragePermission() {
+        logConsole("[System] Requesting storage permission...");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                intent.addCategory("android.intent.category.DEFAULT");
+                intent.setData(Uri.parse(String.format("package:%s", getPackageName())));
+                startActivity(intent);
+            } catch (Exception e) {
+                Intent intent = new Intent();
+                intent.setAction(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                startActivity(intent);
             }
         } else {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                        REQUEST_STORAGE_PERMISSION);
-            }
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    REQUEST_STORAGE_PERMISSION);
+        }
+    }
+
+    private void checkRootAccess(boolean manualTrigger) {
+        if (manualTrigger) {
+            logConsole("[System] Requesting root access...");
+        }
+        executor.execute(() -> {
+            ShellResult r = runRootCommand("id");
+            isRootGranted = (r.exitCode == 0 && r.stdout.contains("uid=0"));
+            mainHandler.post(() -> {
+                if (isRootGranted) {
+                    tvGateRootStatus.setText("🟢 Terpenuhi");
+                    btnGateRequestRoot.setEnabled(false);
+                    logConsole("[System] Root status: ACTIVE (uid=0)");
+                    // Create folder
+                    executor.execute(() -> runRootCommand("mkdir -p " + BACKUP_ROOT));
+                } else {
+                    tvGateRootStatus.setText("🔴 Tidak Ada Akses");
+                    btnGateRequestRoot.setEnabled(true);
+                    if (manualTrigger) {
+                        Toast.makeText(MainActivity.this, "Akses root ditolak atau Magisk tidak merespon!", Toast.LENGTH_SHORT).show();
+                    }
+                }
+                updateGateProceedButton();
+            });
+        });
+    }
+
+    private void updateGateProceedButton() {
+        boolean allOk = isRootGranted && isStorageGranted;
+        btnGateCheckAll.setEnabled(allOk);
+        if (allOk) {
+            layoutGate.setVisibility(View.GONE);
+            layoutDashboard.setVisibility(View.VISIBLE);
+        } else {
+            layoutGate.setVisibility(View.VISIBLE);
+            layoutDashboard.setVisibility(View.GONE);
         }
     }
 
@@ -510,6 +577,8 @@ public class MainActivity extends AppCompatActivity {
                     continue;
                 }
 
+                String appDataDir = getAppDataDir(pkg);
+
                 // Force stop app
                 logConsole("[Command] Menghentikan " + pkg);
                 runRootCommand("am force-stop " + pkg);
@@ -529,10 +598,10 @@ public class MainActivity extends AppCompatActivity {
                     logConsole("[Restore] Mengekstrak file backup untuk " + pkg + "...");
                     
                     // Delete fresh directory files to extract clean zip
-                    runRootCommand("rm -rf /data/data/" + pkg + "/*");
+                    runRootCommand("rm -rf " + appDataDir + "/*");
                     
                     // Extract
-                    String extractCmd = "tar -xzf " + backupPath + " -C /data/data/" + pkg + "/";
+                    String extractCmd = "tar -xzf " + backupPath + " -C " + appDataDir + "/";
                     logConsole("[Command] su -c '" + extractCmd + "'");
                     ShellResult extRes = runRootCommand(extractCmd);
                     if (extRes.exitCode != 0) {
@@ -545,17 +614,17 @@ public class MainActivity extends AppCompatActivity {
                     int uid = getAppUid(pkg);
                     if (uid > 0) {
                         logConsole("[Restore] Mengatur kepemilikan data ke UID " + uid);
-                        runRootCommand("chown -R " + uid + ":" + uid + " /data/data/" + pkg);
-                        runRootCommand("chmod 700 /data/data/" + pkg);
-                        runRootCommand("chmod -R 600 /data/data/" + pkg + "/*");
-                        runRootCommand("find /data/data/" + pkg + " -type d -exec chmod 700 {} \\;");
+                        runRootCommand("chown -R " + uid + ":" + uid + " " + appDataDir);
+                        runRootCommand("chmod 700 " + appDataDir);
+                        runRootCommand("chmod -R 600 " + appDataDir + "/*");
+                        runRootCommand("find " + appDataDir + " -type d -exec chmod 700 {} \\;");
                     } else {
                         logConsole("[Error] Gagal mendapatkan UID untuk " + pkg + ". Hak akses data mungkin bermasalah!");
                     }
 
                     // Fix SELinux Contexts
-                    logConsole("[Restore] restorecon -R /data/data/" + pkg);
-                    runRootCommand("restorecon -R /data/data/" + pkg);
+                    logConsole("[Restore] restorecon -R " + appDataDir);
+                    runRootCommand("restorecon -R " + appDataDir);
                 } else {
                     // It's a fresh profile, already cleared by pm clear
                     logConsole("[Restore] Profil baru/kosong untuk " + pkg + " (Fresh data applied)");
@@ -604,9 +673,11 @@ public class MainActivity extends AppCompatActivity {
             String targetDir = BACKUP_ROOT + "/" + profileName + "/" + pkg;
             runRootCommand("mkdir -p " + targetDir);
 
+            String appDataDir = getAppDataDir(pkg);
+
             // Compress data
-            // We use tar -czf to backup /data/data/<pkg> to target folder. We do -C to go inside data dir and compress relative files
-            String backupCmd = "tar -czf " + targetDir + "/data.tar.gz -C /data/data/" + pkg + " .";
+            // We use tar -czf to backup to target folder. We do -C to go inside data dir and compress relative files
+            String backupCmd = "tar -czf " + targetDir + "/data.tar.gz -C " + appDataDir + " .";
             logConsole("[Command] su -c '" + backupCmd + "'");
             ShellResult r = runRootCommand(backupCmd);
             if (r.exitCode == 0) {
@@ -673,9 +744,19 @@ public class MainActivity extends AppCompatActivity {
             getPackageManager().getPackageInfo(packageName, 0);
             return true;
         } catch (PackageManager.NameNotFoundException e) {
-            // Fallback via root shell: check if the app's private data folder exists
-            ShellResult r = runRootCommand("[ -d /data/data/" + packageName + " ] && echo 'exists'");
+            // Fallback via root shell: check if the app's private data folder exists (in any of the common paths)
+            String resolvedPath = getAppDataDir(packageName);
+            ShellResult r = runRootCommand("[ -d /data/data/" + packageName + " ] || [ -d /data/user/0/" + packageName + " ] || [ -d " + resolvedPath + " ] && echo 'exists'");
             return r.stdout.trim().equals("exists");
+        }
+    }
+
+    private String getAppDataDir(String packageName) {
+        if (!isValidPackageName(packageName)) return "/data/data/" + packageName;
+        try {
+            return getPackageManager().getPackageInfo(packageName, 0).applicationInfo.dataDir;
+        } catch (Exception e) {
+            return "/data/data/" + packageName; // Fallback
         }
     }
 
