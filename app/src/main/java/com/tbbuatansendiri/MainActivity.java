@@ -495,7 +495,7 @@ public class MainActivity extends AppCompatActivity {
             infoLayout.setOnClickListener(v -> showProfileDetailsDialog(profileName));
 
             TextView tvName = new TextView(this);
-            tvName.setText("Profil " + profileName);
+            tvName.setText(profileName);
             tvName.setTextColor(isActive ? 0xFFF59E0B : 0xFFE2E8F0);
             tvName.setTextSize(16);
             tvName.setTypeface(null, android.graphics.Typeface.BOLD);
