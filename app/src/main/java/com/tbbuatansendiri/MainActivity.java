@@ -470,12 +470,20 @@ public class MainActivity extends AppCompatActivity {
             indicator.setLayoutParams(indicatorLp);
             row.addView(indicator);
 
-            // Profile info container
+            // Profile info container (Clickable to view details)
             LinearLayout infoLayout = new LinearLayout(this);
             infoLayout.setOrientation(LinearLayout.VERTICAL);
             infoLayout.setPadding(padding12, 0, padding12, 0);
             LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
             infoLayout.setLayoutParams(infoLp);
+            infoLayout.setFocusable(true);
+            infoLayout.setClickable(true);
+
+            // Add ripple selector background
+            android.util.TypedValue outValue = new android.util.TypedValue();
+            getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+            infoLayout.setBackgroundResource(outValue.resourceId);
+            infoLayout.setOnClickListener(v -> showProfileDetailsDialog(profileName));
 
             TextView tvName = new TextView(this);
             tvName.setText("Profil " + profileName);
@@ -495,7 +503,7 @@ public class MainActivity extends AppCompatActivity {
             // Action Buttons layout
             LinearLayout btnLayout = new LinearLayout(this);
             btnLayout.setOrientation(LinearLayout.HORIZONTAL);
-            btnLayout.setGravity(Gravity.END);
+            btnLayout.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
 
             // Apply Button
             Button btnApply = new Button(this);
@@ -508,6 +516,16 @@ public class MainActivity extends AppCompatActivity {
             btnApply.setLayoutParams(btnLp);
             btnApply.setOnClickListener(v -> switchProfile(profileName));
             btnLayout.addView(btnApply);
+
+            // Edit Button (Rename)
+            ImageButton btnEdit = new ImageButton(this);
+            btnEdit.setImageResource(android.R.drawable.ic_menu_edit);
+            btnEdit.setColorFilter(0xFFF59E0B);
+            btnEdit.setBackgroundColor(0);
+            LinearLayout.LayoutParams editLp = new LinearLayout.LayoutParams((int) (40 * dp), (int) (38 * dp));
+            btnEdit.setLayoutParams(editLp);
+            btnEdit.setOnClickListener(v -> showRenameProfileDialog(profileName));
+            btnLayout.addView(btnEdit);
 
             // Delete Button (only if not active)
             if (!isActive && !profileName.equals("01")) {
@@ -530,7 +548,7 @@ public class MainActivity extends AppCompatActivity {
                 final String statusText;
                 if (r.exitCode == 0 && !r.stdout.trim().isEmpty()) {
                     int count = r.stdout.split("\n").length;
-                    statusText = "💾 " + count + " aplikasi terbackup";
+                    statusText = "💾 " + count + " aplikasi terbackup (Detail)";
                 } else {
                     statusText = "⚪ Kosong (Fresh)";
                 }
@@ -557,6 +575,118 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Batal", null)
                 .show();
+    }
+
+    private void showRenameProfileDialog(final String oldName) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Ubah Nama Profil");
+
+        final EditText input = new EditText(this);
+        input.setText(oldName);
+        input.setSelection(oldName.length());
+        input.setPadding(40, 20, 40, 20);
+        builder.setView(input);
+
+        builder.setPositiveButton("Simpan", (dialog, which) -> {
+            String newName = input.getText().toString().trim().replaceAll("[^a-zA-Z0-9_-]", "");
+            if (newName.isEmpty()) {
+                Toast.makeText(MainActivity.this, "Nama profil tidak valid!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (newName.equals(oldName)) {
+                return; // No change
+            }
+            if (profileList.contains(newName)) {
+                Toast.makeText(MainActivity.this, "Profil dengan nama tersebut sudah ada!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            showProgress(true, "Mengubah nama profil...");
+            executor.execute(() -> {
+                // Rename directory
+                ShellResult r = runRootCommand("mv " + BACKUP_ROOT + "/" + oldName + " " + BACKUP_ROOT + "/" + newName);
+                if (r.exitCode == 0) {
+                    // Update profile list
+                    int index = profileList.indexOf(oldName);
+                    if (index != -1) {
+                        profileList.set(index, newName);
+                    }
+                    Collections.sort(profileList);
+
+                    // Update active profile name if it was renamed
+                    if (activeProfile.equals(oldName)) {
+                        activeProfile = newName;
+                        prefs.edit().putString(KEY_ACTIVE_PROFILE, activeProfile).apply();
+                    }
+
+                    logConsole("[System] Profil '" + oldName + "' diubah namanya menjadi '" + newName + "'");
+                    mainHandler.post(() -> {
+                        showProgress(false, "");
+                        updateUI();
+                        renderProfileSlots();
+                        Toast.makeText(MainActivity.this, "Nama profil berhasil diubah!", Toast.LENGTH_SHORT).show();
+                    });
+                } else {
+                    logConsole("[Error] Gagal mengubah nama folder profil: " + r.stderr);
+                    mainHandler.post(() -> {
+                        showProgress(false, "");
+                        Toast.makeText(MainActivity.this, "Gagal mengubah nama profil!", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            });
+        });
+        builder.setNegativeButton("Batal", null);
+        builder.show();
+    }
+
+    private void showProfileDetailsDialog(final String profileName) {
+        showProgress(true, "Membaca data profil...");
+        executor.execute(() -> {
+            // List directories under BACKUP_ROOT/profileName
+            ShellResult r = runRootCommand("ls " + BACKUP_ROOT + "/" + profileName);
+            final List<String> backedUpApps = new ArrayList<>();
+            if (r.exitCode == 0 && !r.stdout.trim().isEmpty()) {
+                String[] packages = r.stdout.split("\n");
+                PackageManager pm = getPackageManager();
+                for (String pkg : packages) {
+                    String trimmedPkg = pkg.trim();
+                    if (trimmedPkg.isEmpty() || !isValidPackageName(trimmedPkg)) continue;
+
+                    // Check if backup file exists
+                    String backupPath = BACKUP_ROOT + "/" + profileName + "/" + trimmedPkg + "/data.tar.gz";
+                    ShellResult fileCheck = runRootCommand("[ -f " + backupPath + " ] && echo 'exists'");
+                    if (fileCheck.stdout.trim().equals("exists")) {
+                        // Get app label
+                        String label = trimmedPkg;
+                        try {
+                            ApplicationInfo info = pm.getApplicationInfo(trimmedPkg, 0);
+                            label = info.loadLabel(pm).toString();
+                        } catch (Exception ignored) {
+                            // Not installed locally, just show package name
+                        }
+                        backedUpApps.add("• " + label + " (" + trimmedPkg + ")");
+                    }
+                }
+            }
+
+            mainHandler.post(() -> {
+                showProgress(false, "");
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                builder.setTitle("Isi Profil: " + profileName);
+                
+                if (backedUpApps.isEmpty()) {
+                    builder.setMessage("⚪ Profil ini kosong (Fresh / Belum ada backup)");
+                } else {
+                    StringBuilder sb = new StringBuilder("Aplikasi yang ter-backup di profil ini:\n\n");
+                    for (String app : backedUpApps) {
+                        sb.append(app).append("\n");
+                    }
+                    builder.setMessage(sb.toString());
+                }
+                builder.setPositiveButton("Tutup", null);
+                builder.show();
+            });
+        });
     }
 
     // ─── BACKUP / RESTORE EXECUTION ──────────────────────────────────────────────
