@@ -668,11 +668,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean appInstalled(String packageName) {
+        if (!isValidPackageName(packageName)) return false;
         try {
             getPackageManager().getPackageInfo(packageName, 0);
             return true;
         } catch (PackageManager.NameNotFoundException e) {
-            return false;
+            // Fallback via root shell: check if the app's private data folder exists
+            ShellResult r = runRootCommand("[ -d /data/data/" + packageName + " ] && echo 'exists'");
+            return r.stdout.trim().equals("exists");
         }
     }
 
