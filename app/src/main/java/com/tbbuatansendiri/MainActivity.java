@@ -157,12 +157,24 @@ public class MainActivity extends AppCompatActivity {
         checkRootAccess(false);
     }
 
-    private void checkStoragePermissionState() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            isStorageGranted = Environment.isExternalStorageManager();
+    private boolean hasStandardStoragePermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED &&
+                   ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED &&
+                   ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED;
         } else {
-            isStorageGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
+                   ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
         }
+    }
+
+    private void checkStoragePermissionState() {
+        boolean standardOk = hasStandardStoragePermissions();
+        boolean manageOk = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            manageOk = Environment.isExternalStorageManager();
+        }
+        isStorageGranted = standardOk && manageOk;
 
         mainHandler.post(() -> {
             if (isStorageGranted) {
@@ -178,21 +190,59 @@ public class MainActivity extends AppCompatActivity {
 
     private void grantStoragePermission() {
         logConsole("[System] Requesting storage permission...");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (!hasStandardStoragePermissions()) {
+            // First ask for standard runtime permissions (shows the pop-up dialogue)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{
+                                Manifest.permission.READ_MEDIA_IMAGES,
+                                Manifest.permission.READ_MEDIA_VIDEO,
+                                Manifest.permission.READ_MEDIA_AUDIO
+                        },
+                        REQUEST_STORAGE_PERMISSION);
+            } else {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{
+                                Manifest.permission.READ_EXTERNAL_STORAGE,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        },
+                        REQUEST_STORAGE_PERMISSION);
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+            // If standard permissions are granted but All Files Access is not, ask for All Files Access (redirects to Settings)
             try {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                 intent.addCategory("android.intent.category.DEFAULT");
                 intent.setData(Uri.parse(String.format("package:%s", getPackageName())));
                 startActivity(intent);
             } catch (Exception e) {
-                Intent intent = new Intent();
-                intent.setAction(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
                 startActivity(intent);
             }
-        } else {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    REQUEST_STORAGE_PERMISSION);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_STORAGE_PERMISSION) {
+            if (hasStandardStoragePermissions()) {
+                // Standard permissions granted, now proceed to request All Files Access
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+                    try {
+                        Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                        intent.addCategory("android.intent.category.DEFAULT");
+                        intent.setData(Uri.parse(String.format("package:%s", getPackageName())));
+                        startActivity(intent);
+                    } catch (Exception e) {
+                        Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                        startActivity(intent);
+                    }
+                }
+            } else {
+                Toast.makeText(this, "Izin penyimpanan standard ditolak!", Toast.LENGTH_SHORT).show();
+            }
+            checkStoragePermissionState();
         }
     }
 
