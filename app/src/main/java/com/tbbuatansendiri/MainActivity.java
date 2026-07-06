@@ -44,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnGateGrantStorage, btnGateRequestRoot, btnGateCheckAll;
     private boolean isRootGranted = false;
     private boolean isStorageGranted = false;
+    private boolean isCheckingRoot = false;
 
     private SharedPreferences prefs;
     private ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -154,7 +155,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void runRequirementsCheck() {
         checkStoragePermissionState();
-        checkRootAccess(false);
+        // Delay root check by 1.5 seconds on startup/resume to prevent Magisk from prompting during APK installation
+        mainHandler.postDelayed(() -> {
+            if (!isFinishing() && !isDestroyed()) {
+                checkRootAccess(false);
+            }
+        }, 1500);
     }
 
     private boolean hasStandardStorageAndPhonePermissions() {
@@ -252,6 +258,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkRootAccess(boolean manualTrigger) {
+        if (isCheckingRoot) return;
+        isCheckingRoot = true;
         if (manualTrigger) {
             logConsole("[System] Requesting root access...");
         }
@@ -259,6 +267,7 @@ public class MainActivity extends AppCompatActivity {
             ShellResult r = runRootCommand("id");
             isRootGranted = (r.exitCode == 0 && r.stdout.contains("uid=0"));
             mainHandler.post(() -> {
+                isCheckingRoot = false;
                 if (isRootGranted) {
                     tvGateRootStatus.setText("🟢 Terpenuhi");
                     btnGateRequestRoot.setEnabled(false);
