@@ -157,19 +157,22 @@ public class MainActivity extends AppCompatActivity {
         checkRootAccess(false);
     }
 
-    private boolean hasStandardStoragePermissions() {
+    private boolean hasStandardStorageAndPhonePermissions() {
+        boolean phoneOk = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED;
+        boolean storageOk = false;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED &&
-                   ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED &&
-                   ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED;
+            storageOk = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED &&
+                        ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED &&
+                        ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED;
         } else {
-            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
-                   ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+            storageOk = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
+                        ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
         }
+        return phoneOk && storageOk;
     }
 
     private void checkStoragePermissionState() {
-        boolean standardOk = hasStandardStoragePermissions();
+        boolean standardOk = hasStandardStorageAndPhonePermissions();
         boolean manageOk = true;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             manageOk = Environment.isExternalStorageManager();
@@ -189,22 +192,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void grantStoragePermission() {
-        logConsole("[System] Requesting storage permission...");
-        if (!hasStandardStoragePermissions()) {
+        logConsole("[System] Requesting storage and phone permissions...");
+        if (!hasStandardStorageAndPhonePermissions()) {
             // First ask for standard runtime permissions (shows the pop-up dialogue)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 ActivityCompat.requestPermissions(this,
                         new String[]{
                                 Manifest.permission.READ_MEDIA_IMAGES,
                                 Manifest.permission.READ_MEDIA_VIDEO,
-                                Manifest.permission.READ_MEDIA_AUDIO
+                                Manifest.permission.READ_MEDIA_AUDIO,
+                                Manifest.permission.READ_PHONE_STATE
                         },
                         REQUEST_STORAGE_PERMISSION);
             } else {
                 ActivityCompat.requestPermissions(this,
                         new String[]{
                                 Manifest.permission.READ_EXTERNAL_STORAGE,
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                                Manifest.permission.READ_PHONE_STATE
                         },
                         REQUEST_STORAGE_PERMISSION);
             }
@@ -226,7 +231,7 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_STORAGE_PERMISSION) {
-            if (hasStandardStoragePermissions()) {
+            if (hasStandardStorageAndPhonePermissions()) {
                 // Standard permissions granted, now proceed to request All Files Access
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
                     try {
@@ -240,7 +245,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             } else {
-                Toast.makeText(this, "Izin penyimpanan standard ditolak!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Izin penyimpanan dan telepon standard ditolak!", Toast.LENGTH_SHORT).show();
             }
             checkStoragePermissionState();
         }
