@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F172A">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Title Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:gravity="center_horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚡ TB Buatan Sendiri"
+                android:textSize="26sp"
+                android:textColor="#38BDF8"
+                android:textStyle="bold"
+                android:layout_marginTop="10dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Backup &amp; Restore Multi-Profile (Root required)"
+                android:textSize="12sp"
+                android:textColor="#94A3B8"
+                android:layout_marginTop="4dp"/>
+        </LinearLayout>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- Profile Aktif Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="#1E293B"
+                    android:padding="16dp"
+                    android:layout_marginBottom="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="👤 PROFIL AKTIF SAAT INI"
+                        android:textColor="#38BDF8"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.1"/>
+
+                    <TextView
+                        android:id="@+id/tvActiveProfile"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="01 (Aktif)"
+                        android:textColor="#F59E0B"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="6dp"/>
+                </LinearLayout>
+
+                <!-- Target Apps Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="#1E293B"
+                    android:padding="16dp"
+                    android:layout_marginBottom="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📦 APLIKASI TARGET BACKUP"
+                        android:textColor="#818CF8"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.1"
+                        android:layout_marginBottom="8dp"/>
+
+                    <!-- Predefined Target Apps -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="6dp">
+                        <CheckBox
+                            android:id="@+id/chkTargetWa"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:buttonTint="#34D399"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="WhatsApp"
+                            android:textColor="#E2E8F0"
+                            android:textSize="14sp"
+                            android:layout_marginStart="8dp"/>
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text=" (com.whatsapp)"
+                            android:textColor="#64748B"
+                            android:textSize="11sp"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+                        <CheckBox
+                            android:id="@+id/chkTargetWaBiz"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="false"
+                            android:buttonTint="#34D399"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="WhatsApp Business"
+                            android:textColor="#E2E8F0"
+                            android:textSize="14sp"
+                            android:layout_marginStart="8dp"/>
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text=" (com.whatsapp.w4b)"
+                            android:textColor="#64748B"
+                            android:textSize="11sp"/>
+                    </LinearLayout>
+
+                    <!-- Custom / Select App Button -->
+                    <Button
+                        android:id="@+id/btnSelectOtherApps"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:text="🔍 Pilih Aplikasi Lain..."
+                        android:textSize="12sp"
+                        android:textColor="#0F172A"
+                        android:backgroundTint="#818CF8"
+                        android:layout_marginTop="4dp"/>
+
+                    <TextView
+                        android:id="@+id/tvSelectedOtherApps"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Tidak ada aplikasi tambahan dipilih"
+                        android:textColor="#64748B"
+                        android:textSize="11sp"
+                        android:layout_marginTop="6dp"/>
+                </LinearLayout>
+
+                <!-- Profile Slots Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="#1E293B"
+                    android:padding="16dp"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="🗂️ SLOT PROFIL"
+                            android:textColor="#34D399"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.1"/>
+
+                        <Button
+                            android:id="@+id/btnAddProfile"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:text="+ Tambah Profil"
+                            android:textSize="10sp"
+                            android:textColor="#0F172A"
+                            android:backgroundTint="#34D399"/>
+                    </LinearLayout>
+
+                    <!-- List of Profiles (Slots) -->
+                    <LinearLayout
+                        android:id="@+id/layoutProfileSlots"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+                        <!-- Profile items will be injected here dynamically -->
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Terminal Console Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="#020617"
+                    android:padding="12dp"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="6dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="💻 CONSOLE LOG (ROOT COMMANDS)"
+                            android:textColor="#F43F5E"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.05"/>
+
+                        <TextView
+                            android:id="@+id/btnClearConsole"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="CLEAR"
+                            android:textColor="#475569"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:padding="4dp"
+                            android:clickable="true"/>
+                    </LinearLayout>
+
+                    <ScrollView
+                        android:id="@+id/scrollConsole"
+                        android:layout_width="match_parent"
+                        android:layout_height="150dp"
+                        android:scrollbars="vertical">
+
+                        <TextView
+                            android:id="@+id/tvConsoleLog"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="#E2E8F0"
+                            android:textSize="11sp"
+                            android:fontFamily="monospace"
+                            android:text="[System] Welcome. Root status: Checking...\n"
+                            android:lineSpacingMultiplier="1.2"/>
+                    </ScrollView>
+                </LinearLayout>
+
+                <!-- Manual Operations Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="20dp">
+
+                    <Button
+                        android:id="@+id/btnManualBackup"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="📥 Backup Manual"
+                        android:textSize="12sp"
+                        android:textColor="#0F172A"
+                        android:backgroundTint="#F59E0B"
+                        android:layout_marginEnd="6dp"/>
+
+                    <Button
+                        android:id="@+id/btnRefresh"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="🔄 Refresh Status"
+                        android:textSize="12sp"
+                        android:textColor="#0F172A"
+                        android:backgroundTint="#64748B"/>
+                </LinearLayout>
+
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- Progress Indicator Footer -->
+        <LinearLayout
+            android:id="@+id/layoutProgress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="#1E293B"
+            android:padding="12dp"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <ProgressBar
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:indeterminateTint="#38BDF8"/>
+
+            <TextView
+                android:id="@+id/tvProgressText"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Menjalankan operasi backup..."
+                android:textColor="#E2E8F0"
+                android:textSize="13sp"
+                android:layout_marginStart="12dp"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>
