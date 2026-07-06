@@ -21,7 +21,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="⚡ TB Buatan Sendiri"
+                android:text="⚡ Multi Profile"
                 android:textSize="26sp"
                 android:textColor="#38BDF8"
                 android:textStyle="bold"
